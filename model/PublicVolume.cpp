@@ -50,7 +50,10 @@ static const char* kSdcardFsPath = "/system/bin/sdcard";
 
 static const char* kAsecPath = "/mnt/secure/asec";
 
-PublicVolume::PublicVolume(dev_t device) : VolumeBase(Type::kPublic), mDevice(device) {
+PublicVolume::PublicVolume(dev_t device, const std::string& fstype /* = "" */,
+        const std::string& mntopts /* = "" */)
+        : VolumeBase(Type::kPublic), mDevice(device),
+        mFsType(fstype), mMntOpts(mntopts) {
     setId(StringPrintf("public:%u,%u", major(device), minor(device)));
     mDevPath = StringPrintf("/dev/block/vold/%s", getId().c_str());
     mFuseMounted = false;
@@ -137,9 +140,9 @@ status_t PublicVolume::doMount() {
     if (mFsType == "exfat") {
         ret = exfat::Check(mDevPath);
     } else if (mFsType == "ext4") {
-        ret = ext4::Check(mDevPath, mRawPath);
+        ret = ext4::Check(mDevPath, mRawPath, false);
     } else if (mFsType == "f2fs") {
-        ret = f2fs::Check(mDevPath);
+        ret = f2fs::Check(mDevPath, false);
     } else if (mFsType == "ntfs") {
         ret = ntfs::Check(mDevPath);
     } else if (mFsType == "vfat") {
@@ -156,9 +159,10 @@ status_t PublicVolume::doMount() {
         ret = exfat::Mount(mDevPath, mRawPath, AID_ROOT,
                  (isVisible ? AID_MEDIA_RW : AID_EXTERNAL_STORAGE), 0007);
     } else if (mFsType == "ext4") {
-        ret = ext4::Mount(mDevPath, mRawPath, false, false, true);
+        ret = ext4::Mount(mDevPath, mRawPath, false, false, true, mMntOpts,
+                false, true);
     } else if (mFsType == "f2fs") {
-        ret = f2fs::Mount(mDevPath, mRawPath);
+        ret = f2fs::Mount(mDevPath, mRawPath, mMntOpts, false, true);
     } else if (mFsType == "ntfs") {
         ret = ntfs::Mount(mDevPath, mRawPath, AID_ROOT,
                  (isVisible ? AID_MEDIA_RW : AID_EXTERNAL_STORAGE), 0007);
